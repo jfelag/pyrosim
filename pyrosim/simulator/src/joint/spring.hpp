@@ -51,9 +51,11 @@ public:
         dReal direction[3] = { ( pos2[0] - pos1[0] ),
                                ( pos2[1] - pos1[1] ),
                                ( pos2[2] - pos1[2] ) };
+        
         dReal magnitude = sqrt( direction[0] * direction[0] +
                                 direction[1] * direction[1] +
                                 direction[2] * direction[2] );
+       
         for( int i = 0; i < 3; i++ ){
             direction[i] /= magnitude;
         }
@@ -73,15 +75,18 @@ public:
         float sliderPosition = dJointGetSliderPosition( this->joint );
 
         float displacement = this->sliderOffset + sliderPosition;
+        
+        float velocity = dJointGetSliderPositionRate(this->joint);
+        
+        float friction = velocity*this->damping;
 
-
-        float force = -this->stiffness * displacement;
+        float force = -this->stiffness*displacement - friction;
 
         // undamped
         dJointAddSliderForce( this->joint, force );
     }
 
-    void draw( void ){
+    void draw( ){
         dsSetColorAlpha( 0.0, 0.0, 0.0, 0.5 );
         const dReal *p1 = dBodyGetPosition( this->body1 );
         const dReal *p2 = dBodyGetPosition( this->body2 );
@@ -161,14 +166,23 @@ public:
         dJointGetUniversalAngles( this->joint, &angle1, &angle2 );
         // angular component of spring
         dReal torque1, torque2;
-        torque1 = - this->stiffness * angle1;
-        torque2 = - this->stiffness * angle2;
+        
+        float velocity1 = dJointGetUniversalAngle1Rate(this->joint);
+        float velocity2 = dJointGetUniversalAngle2Rate(this->joint);
+        
+        float friction1 = velocity1*this->damping;
+        float friction2 = velocity2*this->damping;
+        
+        torque1 = - this->stiffness*angle1 - friction1;
+        torque2 = - this->stiffness*angle2 - friction2;
+        
+        
 
         // std::cerr << "JOINT STEP: " << angle1 << " " << angle2 << std::endl;
         dJointAddUniversalTorques( this->joint, torque1, torque2 );
     }
 
-    void draw( void ){
+    void draw( ){
         dVector3 c2;
         dJointGetUniversalAnchor( this->joint, c2 );
         dsSetColorAlpha( 0.0, 0.0, 0.0, 0.5 );
